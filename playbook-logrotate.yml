@@ -1,0 +1,63 @@
+- name: configure custom-monitor log rotation
+  hosts: silverlongjohns-sre
+  # vars are inline, to defer decisions how best to organize
+  # there is one host and playbook, so we colocate vars about
+  # a service with that service playbook
+  vars:
+    service_name: custom-monitor
+    log_file: /var/log/{{service_name}}/monitor.log
+    # quick implementation of logrotate template only supports these two
+    # but copy this pattern to enable others, as needed
+    config_rules:
+    # config just listed here, instead of creating
+    # special logic for the entire log rotate config
+    # we don't need a devops hairshirt
+      - rotate 7
+      - daily
+      - compress
+      - delaycompress
+      - notifempty
+      - create 0644 root root
+    postrotate_script: systemctl restart {{service_name}}
+  tasks:
+    # in case you need to debug the variables
+    # especially with substitution above
+    #
+    # - name: Print all available facts
+    #   ansible.builtin.debug:
+    #     var: ansible_facts
+    - name: ensure log directory exists
+      # creates the directory if it does not exist
+      # in the "file" module, because in unix, everything
+      # is a file
+      ansible.builtin.file:
+        path: /var/log/{{service_name}}
+        state: directory
+        mode: 0755
+        owner: root
+        group: root
+      become: true
+    - name: set logrotate.d config
+      # we drop in logrotate config,
+      # based off a generic template, but give it
+      # a unique service name.
+      become: true # explicit become, for safety, as needed for now
+      notify: 
+        # when we update the log rotate config, we need to restart
+        # to pick it up. ensures it only runs on config change
+        - restart logrotate
+      ansible.builtin.template:
+        src: logrotate.d.conf.j2
+        dest: /etc/logrotate.d/{{ service_name }}
+        owner: root
+        group: root
+        mode: '0644'
+  handlers:
+    - name: restart logrotate
+    # special task to restart log rotate
+    # ensures that this happens at most once at end
+    # to minimize churn, instead of on each config file
+      become: true
+      ansible.builtin.systemd:
+        name: logrotate
+        state: restarted

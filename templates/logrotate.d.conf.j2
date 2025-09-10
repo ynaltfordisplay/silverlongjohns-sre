@@ -1,0 +1,11 @@
+{{ log_file }} {
+    {% for config in config_rules %}
+    {{- config }}
+    {% endfor -%}
+    {%- if postrotate_script is defined -%}
+    postrotate
+        {{ postrotate_script }}
+    endscript
+    {% endif %}
+
+}

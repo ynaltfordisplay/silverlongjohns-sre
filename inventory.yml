@@ -1,0 +1,10 @@
+# the connection information is commented out
+# you should receive a separate packet of information
+# on managing the ssh connection
+ungrouped:
+  hosts:
+    silverlongjohns-sre:
+      # the following should be an IP address
+      #  ansible_host: silverlongjohns-sre
+      # ansible_user: ubuntu
+      # ansible_ssh_private_key_file: /home/example/.ssh/silverlongjohns-sre.pem
